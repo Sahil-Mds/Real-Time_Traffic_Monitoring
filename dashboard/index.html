@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Real-Time Traffic Monitoring - Topic B</title>
+  <meta name="description" content="Live dashboard for monitoring Beijing taxi fleet using Apache Flink, Kafka, and Redis." />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --border: #e2e6ea;
+      --primary: #1a56db;
+      --primary-lt: #ebf0ff;
+      --text: #1e2330;
+      --muted: #6b7280;
+      --green: #16a34a;
+      --red: #dc2626;
+      --amber: #d97706;
+      --purple: #8b5cf6;
+      --radius: 10px;
+      --shadow: 0 2px 8px rgba(0, 0, 0, .08);
+      --nav-h: 54px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav {
+      height: var(--nav-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 32px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+    }
+
+    .nav-brand {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .nav-tab {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+      border: none;
+      background: transparent;
+      transition: background .15s, color .15s;
+    }
+
+    .nav-tab:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .nav-tab.active {
+      background: var(--primary-lt);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .conn-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+      transition: background .3s;
+    }
+
+    .conn-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 0 3px #bbf7d0;
+    }
+
+    .conn-dot.error {
+      background: var(--red);
+    }
+
+    .page {
+      display: none;
+      flex: 1;
+      padding: 20px 24px;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #page-map {
+      height: calc(100vh - var(--nav-h));
+      padding: 16px 20px;
+      min-height: 0;
+    }
+
+    .live-overview {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(130px, 1fr));
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .mini-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .mini-kpi span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+
+    .mini-kpi strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .mini-kpi small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card .s-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-card .s-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .stat-card .s-unit {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .live-map-split {
+      grid-template-columns: minmax(0, 1fr) 360px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 1500px) {
+      .live-overview {
+        grid-template-columns: repeat(4, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .live-overview {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+      }
+
+      .live-map-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-header .ph-count {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    #map {
+      flex: 1;
+      min-height: 420px;
+    }
+
+    .map-legend {
+      padding: 10px 16px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .side-section {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+
+    .side-section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .side-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .ops-body {
+      padding: 14px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .detail-empty {
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 8px 0;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--muted);
+    }
+
+    .detail-value {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .zone-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--primary-lt);
+      color: var(--primary);
+    }
+
+    .zone-badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .zone-badge.violation {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .marker-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .marker-badge.green {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .marker-badge.orange {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .marker-badge.red {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .summary-box {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .summary-box strong {
+      display: block;
+      font-size: 18px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .summary-box span {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .feed-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .feed-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      line-height: 1.5;
+      animation: slideIn .2s ease;
+    }
+
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .feed-item .fi-type {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+
+    .fi-type.overspeed {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .fi-type.area {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .feed-item .fi-detail {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .feed-item .fi-time {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .feed-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      flex: 1;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: var(--bg);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+
+    tbody tr:hover {
+      background: var(--bg);
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      color: var(--text);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      flex: 1;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+    }
+
+    .chart-card h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .bar-label {
+      width: 110px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-track {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 4px;
+      height: 10px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--primary);
+      transition: width .4s ease;
+    }
+
+    .bar-val {
+      width: 60px;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .kpi-item {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .kpi-item .kv {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .kpi-item .kl {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .taxi-marker {
+      transition: transform 5.0s linear;
+    }
+
+    .leaflet-zoom-anim .taxi-marker,
+    .leaflet-pan-anim .taxi-marker {
+      transition: none;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <span class="nav-brand">Traffic Monitoring - Beijing Taxi Fleet</span>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-map" onclick="showPage('map')">Live Map</button>
+      <button class="nav-tab" id="tab-incidents" onclick="showPage('incidents')">Incidents Feed</button>
+      <button class="nav-tab" id="tab-fleet" onclick="showPage('fleet')">Fleet Status</button>
+      <button class="nav-tab" id="tab-analytics" onclick="showPage('analytics')">Analytics</button>
+    </div>
+
+    <div class="conn-badge">
+      <span class="conn-dot" id="conn-dot"></span>
+      <span id="conn-label">Connecting...</span>
+    </div>
+  </nav>
+
+  <div class="page active" id="page-map">
+    <div class="live-overview">
+      <div class="mini-kpi">
+        <span>Active taxis</span>
+        <strong id="map-kpi-active">0</strong>
+        <small>currently visible</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Normal taxis</span>
+        <strong id="map-kpi-normal" style="color:var(--green)">0</strong>
+        <small>green markers</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Warning zone</span>
+        <strong id="map-kpi-warning" style="color:var(--amber)">0</strong>
+        <small>orange markers</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Speed violations</span>
+        <strong id="map-kpi-overspeed" style="color:var(--red)">0</strong>
+        <small>red markers from speed</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Area alerts</span>
+        <strong id="map-kpi-area" style="color:var(--red)">0</strong>
+        <small>outside allowed logic</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Total incidents</span>
+        <strong id="map-kpi-incidents" style="color:var(--red)">0</strong>
+        <small>since dashboard start</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Map messages</span>
+        <strong id="map-kpi-messages">0</strong>
+        <small>from WebSocket</small>
+      </div>
+
+      <div class="mini-kpi">
+        <span>Last update</span>
+        <strong id="map-kpi-last" style="font-size:16px">-</strong>
+        <small>local browser time</small>
+      </div>
+    </div>
+
+    <div class="split live-map-split">
+      <div class="panel">
+        <div class="panel-header">
+          Live Map
+          <span class="ph-count" id="map-count">0 taxis</span>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="map-legend">
+          <span><span class="legend-dot" style="background:var(--green)"></span>Normal</span>
+          <span><span class="legend-dot" style="background:var(--amber)"></span>Warning zone</span>
+          <span><span class="legend-dot" style="background:var(--red)"></span>Speed or area violation</span>
+          <span><span class="legend-dot" style="border: 2px dashed #f59e0b; background: transparent;"></span>10 km warning boundary</span>
+          <span><span class="legend-dot" style="border: 2px dashed #8b5cf6; background: transparent;"></span>15 km discard boundary</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          Operations Panel
+          <span class="ph-count">click a taxi</span>
+        </div>
+
+        <div class="ops-body">
+          <div class="side-section">
+            <div class="side-title">Selected Taxi</div>
+            <div id="taxi-detail-content">
+              <div class="detail-empty">
+                Select a taxi marker on the map to inspect live status, marker color, zone, coordinates, speed, and distance.
+              </div>
+            </div>
+          </div>
+
+          <div class="side-section">
+            <div class="side-title">Live Marker Summary</div>
+            <div class="summary-grid">
+              <div class="summary-box">
+                <strong id="summary-normal">0</strong>
+                <span>green normal</span>
+              </div>
+
+              <div class="summary-box">
+                <strong id="summary-warning">0</strong>
+                <span>orange warning</span>
+              </div>
+
+              <div class="summary-box">
+                <strong id="summary-overspeed">0</strong>
+                <span>speed alerts</span>
+              </div>
+
+              <div class="summary-box">
+                <strong id="summary-area">0</strong>
+                <span>area alerts</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-section">
+            <div class="side-title">Fleet Metrics</div>
+
+            <div class="detail-row">
+              <span class="detail-label">Fleet active</span>
+              <span class="detail-value" id="side-fleet-active">-</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Total distance</span>
+              <span class="detail-value"><span id="side-fleet-distance">-</span> km</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Selected taxi</span>
+              <span class="detail-value" id="side-selected-taxi">None</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Last map update</span>
+              <span class="detail-value" id="side-last-update">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-incidents">
+    <div class="panel" style="flex:1;">
+      <div class="panel-header">
+        All Incidents
+        <span class="ph-count" id="inc-count-full">0 events</span>
+      </div>
+
+      <div class="feed-list" id="feed-list-full">
+        <div class="feed-empty">Waiting for incidents...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-fleet">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-label">Active Taxis on Map</div>
+        <div class="s-value" id="stat-active">-</div>
+        <div class="s-unit">currently visible</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="s-label">Fleet Active</div>
+        <div class="s-value" id="fleet-active">-</div>
+        <div class="s-unit">from fleet metrics</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="s-label">Total Distance</div>
+        <div class="s-value" id="fleet-dist">-</div>
+        <div class="s-unit">km total</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="s-label">Total Violations</div>
+        <div class="s-value" id="stat-viol" style="color:var(--red)">0</div>
+        <div class="s-unit">since dashboard start</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="s-label">Last Update</div>
+        <div class="s-value" id="stat-time" style="font-size:14px">-</div>
+        <div class="s-unit">browser time</div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1;">
+      <div class="panel-header">
+        Per-Taxi State
+        <span class="ph-count" id="taxi-count">0 taxis from Redis</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Taxi ID</th>
+              <th>Avg Speed (km/h)</th>
+              <th>Total Distance (km)</th>
+              <th>Last Seen</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody id="fleet-table-body">
+            <tr>
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">
+                Loading from Redis...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-analytics">
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <h3>Fleet Summary</h3>
+
+        <div class="kpi-grid">
+          <div class="kpi-item">
+            <div class="kv" id="a-active">-</div>
+            <div class="kl">Active Taxis</div>
+          </div>
+
+          <div class="kpi-item">
+            <div class="kv" id="a-dist">-</div>
+            <div class="kl">Total km</div>
+          </div>
+
+          <div class="kpi-item">
+            <div class="kv" id="a-incidents">0</div>
+            <div class="kl">Total Incidents</div>
+          </div>
+
+          <div class="kpi-item">
+            <div class="kv" id="a-overspeed">0</div>
+            <div class="kl">Overspeed Alerts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Top 10 Taxis by Avg Speed</h3>
+        <div class="bar-chart" id="chart-speed"></div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Top 10 Taxis by Distance</h3>
+        <div class="bar-chart" id="chart-distance"></div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Incident Types</h3>
+        <div class="bar-chart" id="chart-incidents"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    const WS_BASE = 'ws://localhost:8000';
+
+    const taxiMarkers = {};
+    const taxiLastState = {};
+    const fleetById = {};
+    const violatingTaxis = new Map();
+
+    let selectedTaxiId = null;
+    let messageCount = 0;
+    let totalIncidents = 0;
+    let overspeedCount = 0;
+    let areaViolationCount = 0;
+    let incidentTypes = {};
+    let fleetTaxiData = [];
+    let wsCount = 0;
+    let latestFleetActive = '-';
+    let latestFleetDistance = '-';
+
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+      document.getElementById('page-' + name).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+
+      if (name === 'fleet') loadFleetTable();
+      if (name === 'analytics') refreshAnalytics();
+      if (name === 'map') setTimeout(() => map.invalidateSize(), 80);
+    }
+
+    const FORBIDDEN_CITY = [39.9163, 116.3972];
+
+    const BEIJING_VIEW_BOUNDS = L.latLngBounds(
+      [39.77, 116.18],
+      [40.06, 116.62]
+    );
+
+    const map = L.map('map', {
+      preferCanvas: true,
+      minZoom: 10,
+      maxZoom: 16,
+      maxBounds: BEIJING_VIEW_BOUNDS.pad(0.8),
+      maxBoundsViscosity: 0.8
+    }).fitBounds(BEIJING_VIEW_BOUNDS);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri, DeLorme, NAVTEQ',
+      maxZoom: 16
+    }).addTo(map);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '',
+      maxZoom: 16
+    }).addTo(map);
+
+    function makeIcon(color) {
+      return L.divIcon({
+        className: 'taxi-marker',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+                 <circle cx="6.5" cy="6.5" r="5.5" fill="${color}" stroke="white" stroke-width="1.5"/>
+               </svg>`,
+        iconSize: [13, 13],
+        iconAnchor: [6.5, 6.5],
+      });
+    }
+
+    const greenIcon = makeIcon('#16a34a');
+    const orangeIcon = makeIcon('#d97706');
+    const redIcon = makeIcon('#dc2626');
+
+    L.circle(FORBIDDEN_CITY, {
+      color: '#f59e0b',
+      fillColor: '#f59e0b',
+      fillOpacity: 0.04,
+      weight: 2,
+      dashArray: '5, 5',
+      radius: 10000
+    }).addTo(map);
+
+    L.circle(FORBIDDEN_CITY, {
+      color: '#8b5cf6',
+      fillColor: '#8b5cf6',
+      fillOpacity: 0.03,
+      weight: 2,
+      dashArray: '5, 5',
+      radius: 15000
+    }).addTo(map);
+
+    L.circleMarker(FORBIDDEN_CITY, {
+      radius: 5,
+      color: '#1e2330',
+      fillColor: '#1e2330',
+      fillOpacity: 1
+    }).addTo(map);
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function nowText() {
+      return new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function formatTimestamp(value) {
+      if (!value) return '-';
+      return String(value).slice(0, 19).replace('T', ' ');
+    }
+
+    function distanceKm(lat1, lon1, lat2, lon2) {
+      const p = Math.PI / 180;
+      const c = Math.cos;
+      const a = 0.5 - c((lat2 - lat1) * p) / 2 +
+        c(lat1 * p) * c(lat2 * p) *
+        (1 - c((lon2 - lon1) * p)) / 2;
+
+      return 12742 * Math.asin(Math.sqrt(a));
+    }
+
+    function taxiKey(t) {
+      return String(t.taxiId ?? t.taxi_id ?? t.id ?? '');
+    }
+
+    function zoneLabel(distance) {
+      if (distance > 15) return { text: 'Outside 15 km', cls: 'violation' };
+      if (distance > 10) return { text: 'Warning zone', cls: 'warning' };
+      return { text: 'Inside 10 km', cls: '' };
+    }
+
+    function isOverspeedType(type, ev) {
+      return String(type).includes('OVERSPEED') || ev.speedKmh !== undefined;
+    }
+
+    function getZoneStats() {
+      let inside = 0;
+      let warning = 0;
+
+      Object.values(taxiLastState).forEach(t => {
+        if (t.distFromCenter > 10) warning++;
+        else inside++;
+      });
+
+      return { inside, warning };
+    }
+
+    function markerStateForTaxi(id) {
+      const state = taxiLastState[id];
+
+      if (violatingTaxis.has(id)) {
+        const type = violatingTaxis.get(id);
+        if (String(type).includes('OVERSPEED')) {
+          return {
+            text: 'Red - speed violation',
+            cls: 'red',
+            icon: redIcon
+          };
+        }
+
+        return {
+          text: 'Red - area violation',
+          cls: 'red',
+          icon: redIcon
+        };
+      }
+
+      if (state && state.distFromCenter > 10) {
+        return {
+          text: 'Orange - warning zone',
+          cls: 'orange',
+          icon: orangeIcon
+        };
+      }
+
+      return {
+        text: 'Green - normal',
+        cls: 'green',
+        icon: greenIcon
+      };
+    }
+
+    function rebuildFleetIndex() {
+      Object.keys(fleetById).forEach(id => delete fleetById[id]);
+
+      fleetTaxiData.forEach(t => {
+        const id = taxiKey(t);
+        if (id) fleetById[id] = t;
+      });
+    }
+
+    function renderTaxiDetails() {
+      const box = document.getElementById('taxi-detail-content');
+      if (!box) return;
+
+      if (!selectedTaxiId || !taxiLastState[selectedTaxiId]) {
+        box.innerHTML = `
+          <div class="detail-empty">
+            Select a taxi marker on the map to inspect live status, marker color, zone, coordinates, speed, and distance.
+          </div>`;
+        setText('side-selected-taxi', 'None');
+        return;
+      }
+
+      const t = taxiLastState[selectedTaxiId];
+      const zone = zoneLabel(t.distFromCenter);
+      const fleet = fleetById[selectedTaxiId] || {};
+      const markerState = markerStateForTaxi(selectedTaxiId);
+      const alertText = violatingTaxis.get(selectedTaxiId) || (t.distFromCenter > 10 ? 'ZONE_WARNING' : 'Normal');
+      const avgSpeed = fleet.avgSpeedKmh != null ? `${fleet.avgSpeedKmh.toFixed(1)} km/h` : '-';
+      const totalDistance = fleet.totalDistanceKm != null ? `${fleet.totalDistanceKm.toFixed(2)} km` : '-';
+
+      setText('side-selected-taxi', `#${selectedTaxiId}`);
+
+      box.innerHTML = `
+        <div class="detail-row">
+          <span class="detail-label">Taxi ID</span>
+          <span class="detail-value">#${t.id}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Marker color</span>
+          <span class="detail-value"><span class="marker-badge ${markerState.cls}">${markerState.text}</span></span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">${String(alertText).replace(/_/g, ' ')}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Zone</span>
+          <span class="detail-value"><span class="zone-badge ${zone.cls}">${zone.text}</span></span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Distance from center</span>
+          <span class="detail-value">${t.distFromCenter.toFixed(2)} km</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Average speed</span>
+          <span class="detail-value">${avgSpeed}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Total distance</span>
+          <span class="detail-value">${totalDistance}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Latitude</span>
+          <span class="detail-value">${t.lat.toFixed(5)}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Longitude</span>
+          <span class="detail-value">${t.lon.toFixed(5)}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Last timestamp</span>
+          <span class="detail-value">${formatTimestamp(t.timestamp)}</span>
+        </div>
+      `;
+    }
+
+    function refreshOperationsSummary() {
+      const activeCount = Object.keys(taxiMarkers).length;
+      const zoneStats = getZoneStats();
+      const normalCount = Math.max(0, activeCount - zoneStats.warning - violatingTaxis.size);
+      const updateTime = nowText();
+
+      setText('map-kpi-active', activeCount);
+      setText('map-kpi-normal', normalCount);
+      setText('map-kpi-warning', zoneStats.warning);
+      setText('map-kpi-overspeed', overspeedCount);
+      setText('map-kpi-area', areaViolationCount);
+      setText('map-kpi-incidents', totalIncidents);
+      setText('map-kpi-messages', messageCount);
+      setText('map-kpi-last', updateTime);
+
+      setText('summary-normal', normalCount);
+      setText('summary-warning', zoneStats.warning);
+      setText('summary-overspeed', overspeedCount);
+      setText('summary-area', areaViolationCount);
+
+      setText('map-count', `${activeCount} taxis`);
+      setText('stat-active', activeCount);
+      setText('stat-time', updateTime);
+      setText('a-active', activeCount);
+
+      setText('side-fleet-active', latestFleetActive);
+      setText('side-fleet-distance', latestFleetDistance);
+      setText('side-last-update', updateTime);
+
+      if (!selectedTaxiId) {
+        setText('side-selected-taxi', 'None');
+      }
+    }
+
+    function setConnected() {
+      wsCount++;
+
+      document.getElementById('conn-dot').className = 'conn-dot live';
+      document.getElementById('conn-label').textContent = 'Live';
+    }
+
+    function setDisconnected() {
+      wsCount = Math.max(0, wsCount - 1);
+
+      if (wsCount === 0) {
+        document.getElementById('conn-dot').className = 'conn-dot error';
+        document.getElementById('conn-label').textContent = 'Disconnected';
+      }
+    }
+
+    function handleLiveMapPayload(taxis) {
+      if (!Array.isArray(taxis)) return;
+
+      const activeIds = new Set();
+
+      taxis.forEach(t => {
+        const id = String(t.taxi_id ?? t.taxiId ?? t.id ?? '');
+        const lat = Number(t.latitude);
+        const lon = Number(t.longitude);
+
+        if (!id || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+        const distFromCenter = distanceKm(lat, lon, FORBIDDEN_CITY[0], FORBIDDEN_CITY[1]);
+
+        if (distFromCenter > 15.0) return;
+
+        activeIds.add(id);
+
+        taxiLastState[id] = {
+          id,
+          lat,
+          lon,
+          timestamp: t.timestamp,
+          distFromCenter
+        };
+
+        const markerState = markerStateForTaxi(id);
+
+        if (taxiMarkers[id]) {
+          taxiMarkers[id].setLatLng([lat, lon]);
+          taxiMarkers[id].setIcon(markerState.icon);
+        } else {
+          taxiMarkers[id] = L.marker([lat, lon], { icon: markerState.icon })
+            .bindTooltip(`Taxi #${id}`, { permanent: false, direction: 'top' })
+            .on('click', () => {
+              selectedTaxiId = id;
+              renderTaxiDetails();
+              refreshOperationsSummary();
+            })
+            .addTo(map);
+        }
+      });
+
+      Object.keys(taxiMarkers).forEach(id => {
+        if (!activeIds.has(id)) {
+          map.removeLayer(taxiMarkers[id]);
+          delete taxiMarkers[id];
+          delete taxiLastState[id];
+          violatingTaxis.delete(id);
+
+          if (selectedTaxiId === id) {
+            selectedTaxiId = null;
+          }
+        }
+      });
+
+      refreshOperationsSummary();
+      renderTaxiDetails();
+    }
+
+    function handleIncident(ev) {
+      const taxiId = String(ev.taxiId ?? ev.taxi_id ?? '');
+      if (!taxiId) return;
+
+      totalIncidents++;
+
+      const type = ev.alertType || ev.violationType || 'UNKNOWN';
+      const isOver = isOverspeedType(type, ev);
+
+      if (isOver) overspeedCount++;
+      else areaViolationCount++;
+
+      const css = isOver ? 'overspeed' : 'area';
+
+      const detail = isOver
+        ? `Taxi #${taxiId} - ${ev.speedKmh?.toFixed(1) || '?'} km/h`
+        : `Taxi #${taxiId} - ${String(type).replace(/_/g, ' ')}`;
+
+      const time = formatTimestamp(ev.timestamp);
+
+      violatingTaxis.set(taxiId, type);
+
+      if (taxiMarkers[taxiId]) {
+        taxiMarkers[taxiId].setIcon(redIcon);
+      }
+
+      setTimeout(() => {
+        if (violatingTaxis.get(taxiId) === type) {
+          violatingTaxis.delete(taxiId);
+
+          if (taxiMarkers[taxiId]) {
+            taxiMarkers[taxiId].setIcon(markerStateForTaxi(taxiId).icon);
+          }
+
+          refreshOperationsSummary();
+          renderTaxiDetails();
+        }
+      }, 10000);
+
+      incidentTypes[type] = (incidentTypes[type] || 0) + 1;
+
+      const item = document.createElement('div');
+      item.className = 'feed-item';
+      item.innerHTML = `
+        <span class="fi-type ${css}">${String(type).replace(/_/g, ' ')}</span>
+        <div class="fi-detail">${detail}</div>
+        <div class="fi-time">${time}</div>
+      `;
+
+      const list = document.getElementById('feed-list-full');
+
+      if (list) {
+        const empty = list.querySelector('.feed-empty');
+        if (empty) empty.remove();
+
+        list.prepend(item);
+
+        while (list.children.length > 200) {
+          list.removeChild(list.lastChild);
+        }
+      }
+
+      setText('stat-viol', totalIncidents);
+      setText('inc-count-full', `${totalIncidents} events`);
+      setText('a-incidents', totalIncidents);
+      setText('a-overspeed', overspeedCount);
+
+      refreshOperationsSummary();
+      renderTaxiDetails();
+    }
+
+    function connectLiveMap() {
+      const ws = new WebSocket(`${WS_BASE}/ws/live-map`);
+
+      ws.onopen = setConnected;
+
+      ws.onclose = () => {
+        setDisconnected();
+        setTimeout(connectLiveMap, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (e) => {
+        messageCount++;
+
+        try {
+          handleLiveMapPayload(JSON.parse(e.data));
+        } catch (_) {
+        }
+
+        refreshOperationsSummary();
+      };
+    }
+
+    function connectIncidents() {
+      const ws = new WebSocket(`${WS_BASE}/ws/incidents`);
+
+      ws.onopen = setConnected;
+
+      ws.onclose = () => {
+        setDisconnected();
+        setTimeout(connectIncidents, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (e) => {
+        try {
+          handleIncident(JSON.parse(e.data));
+        } catch (_) {
+        }
+      };
+    }
+
+    function connectFleetStatus() {
+      const ws = new WebSocket(`${WS_BASE}/ws/fleet-status`);
+
+      ws.onopen = setConnected;
+
+      ws.onclose = () => {
+        setDisconnected();
+        setTimeout(connectFleetStatus, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          latestFleetActive = d.activeTaxis ?? '-';
+          latestFleetDistance = d.totalDistanceKm != null ? d.totalDistanceKm.toFixed(0) : '-';
+
+          setText('fleet-active', latestFleetActive);
+          setText('fleet-dist', latestFleetDistance);
+          setText('a-active', latestFleetActive);
+          setText('a-dist', latestFleetDistance);
+
+          refreshOperationsSummary();
+        } catch (_) {
+        }
+      };
+    }
+
+    async function loadFleetDataOnly() {
+      try {
+        const res = await fetch(`${API_BASE}/api/taxis`);
+        fleetTaxiData = await res.json();
+        rebuildFleetIndex();
+        renderTaxiDetails();
+      } catch (_) {
+      }
+    }
+
+    async function loadFleetTable() {
+      try {
+        const res = await fetch(`${API_BASE}/api/taxis`);
+        fleetTaxiData = await res.json();
+        rebuildFleetIndex();
+        renderFleetTable(fleetTaxiData);
+        renderTaxiDetails();
+      } catch (err) {
+        document.getElementById('fleet-table-body').innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">
+              Could not reach API (${err.message})
+            </td>
+          </tr>`;
+      }
+    }
+
+    function renderFleetTable(taxis) {
+      setText('taxi-count', `${taxis.length} taxis from Redis`);
+
+      const tbody = document.getElementById('fleet-table-body');
+
+      if (!taxis.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">
+              No data yet - waiting for Flink to write to Redis.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      taxis.sort((a, b) => (b.avgSpeedKmh || 0) - (a.avgSpeedKmh || 0));
+
+      tbody.innerHTML = taxis.map(t => {
+        const id = taxiKey(t);
+        let dotColor = 'var(--green)';
+        let label = 'Normal';
+
+        if (violatingTaxis.has(id)) {
+          dotColor = 'var(--red)';
+          label = String(violatingTaxis.get(id)).replace(/_/g, ' ');
+        } else if (taxiLastState[id] && taxiLastState[id].distFromCenter > 10) {
+          dotColor = 'var(--amber)';
+          label = 'ZONE WARNING';
+        }
+
+        return `
+          <tr>
+            <td>#${id}</td>
+            <td>${t.avgSpeedKmh?.toFixed(1) ?? '-'}</td>
+            <td>${t.totalDistanceKm?.toFixed(2) ?? '-'}</td>
+            <td>${formatTimestamp(t.timestamp)}</td>
+            <td><span class="status-dot" style="background:${dotColor}"></span>${label}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderBarChart(containerId, items, maxVal, unit) {
+      const el = document.getElementById(containerId);
+
+      if (!items.length) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No data yet</div>';
+        return;
+      }
+
+      el.innerHTML = items.map(([label, val]) => {
+        const pct = maxVal ? (val / maxVal * 100).toFixed(1) : 0;
+
+        return `
+          <div class="bar-row">
+            <span class="bar-label" title="${label}">${label}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="bar-val">${typeof val === 'number' ? val.toFixed(1) : val}${unit}</span>
+          </div>`;
+      }).join('');
+    }
+
+    function refreshAnalytics() {
+      const bySpeed = [...fleetTaxiData]
+        .sort((a, b) => (b.avgSpeedKmh || 0) - (a.avgSpeedKmh || 0))
+        .slice(0, 10)
+        .map(t => [`#${taxiKey(t)}`, t.avgSpeedKmh || 0]);
+
+      const maxSpeed = bySpeed[0]?.[1] || 1;
+      renderBarChart('chart-speed', bySpeed, maxSpeed, ' km/h');
+
+      const byDist = [...fleetTaxiData]
+        .sort((a, b) => (b.totalDistanceKm || 0) - (a.totalDistanceKm || 0))
+        .slice(0, 10)
+        .map(t => [`#${taxiKey(t)}`, t.totalDistanceKm || 0]);
+
+      const maxDist = byDist[0]?.[1] || 1;
+      renderBarChart('chart-distance', byDist, maxDist, ' km');
+
+      const incItems = Object.entries(incidentTypes).sort((a, b) => b[1] - a[1]);
+      const maxInc = incItems[0]?.[1] || 1;
+      renderBarChart('chart-incidents', incItems, maxInc, '');
+
+      if (!fleetTaxiData.length) loadFleetDataOnly();
+    }
+
+    async function pollFleetStats() {
+      try {
+        const res = await fetch(`${API_BASE}/api/fleet/stats`);
+        const d = await res.json();
+
+        if (d.activeTaxis !== undefined) {
+          latestFleetActive = d.activeTaxis;
+          setText('fleet-active', latestFleetActive);
+          setText('a-active', latestFleetActive);
+        }
+
+        if (d.totalDistanceKm !== undefined) {
+          latestFleetDistance = d.totalDistanceKm.toFixed(0);
+          setText('fleet-dist', latestFleetDistance);
+          setText('a-dist', latestFleetDistance);
+        }
+
+        refreshOperationsSummary();
+      } catch (_) {
+      }
+    }
+
+    connectLiveMap();
+    connectIncidents();
+    connectFleetStatus();
+
+    pollFleetStats();
+    loadFleetDataOnly();
+
+    setInterval(pollFleetStats, 10000);
+    setInterval(loadFleetDataOnly, 10000);
+  </script>
+</body>
+</html>

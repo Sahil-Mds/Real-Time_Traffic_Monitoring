@@ -1,0 +1,539 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1850 1150" width="100%" height="100%">
+  <!-- White Background Card for Dark Mode Compatibility -->
+  <rect width="100%" height="100%" fill="#ffffff" rx="16" />
+
+  <defs>
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.15" />
+    </filter>
+
+    <!-- Arrow Markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 8 5 L 0 8 z" fill="#555" />
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 8 5 L 0 8 z" fill="#1976d2" />
+    </marker>
+
+    <!-- Gradients -->
+    <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e3f2fd" />
+      <stop offset="100%" stop-color="#bbdefb" />
+    </linearGradient>
+    <linearGradient id="producer-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffebee" />
+      <stop offset="100%" stop-color="#ffcdd2" />
+    </linearGradient>
+    <linearGradient id="operator-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f5f5f5" />
+    </linearGradient>
+    <linearGradient id="topic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f5f5f5" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    text {
+      font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+    }
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      fill: #1a237e;
+    }
+    .group-title {
+      font-size: 18px;
+      font-weight: bold;
+      fill: #263238;
+    }
+    .label {
+      font-size: 13px;
+      font-weight: 600;
+      fill: #212121;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .label-multiline {
+      font-size: 12px;
+      font-weight: 600;
+      fill: #212121;
+      text-anchor: middle;
+    }
+    .sub-label {
+      font-size: 10px;
+      fill: #616161;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .flow-text {
+      font-size: 11px;
+      fill: #455a64;
+      font-weight: bold;
+      text-anchor: middle;
+    }
+
+    /* Container Styles */
+    .container-flink {
+      fill: #fafafa;
+      stroke: #757575;
+      stroke-width: 1.5;
+      rx: 8px;
+    }
+    .container-kafka {
+      fill: #fafafa;
+      stroke: #d6b656;
+      stroke-width: 1.5;
+      rx: 8px;
+    }
+    .container-redis {
+      fill: #fafafa;
+      stroke: #d6b656;
+      stroke-width: 1.5;
+      rx: 8px;
+    }
+    .container-api {
+      fill: #fafafa;
+      stroke: #757575;
+      stroke-width: 1.5;
+      rx: 8px;
+    }
+    .container-dashboard {
+      fill: #fafafa;
+      stroke: #757575;
+      stroke-width: 1.5;
+      rx: 8px;
+    }
+
+    /* Element Styles */
+    .db-cylinder {
+      fill: url(#db-grad);
+      stroke: #6c8ebf;
+      stroke-width: 1.5;
+    }
+    .producer-box {
+      fill: url(#producer-grad);
+      stroke: #b85450;
+      stroke-width: 1.5;
+      rx: 5px;
+    }
+    .flink-operator {
+      fill: url(#operator-grad);
+      stroke: #666666;
+      stroke-width: 1.25;
+      rx: 5px;
+    }
+    .flink-source {
+      fill: url(#producer-grad);
+      stroke: #b85450;
+      stroke-width: 1.5;
+      rx: 5px;
+    }
+    .kafka-topic {
+      fill: url(#topic-grad);
+      stroke: #36393d;
+      stroke-width: 1.25;
+      rx: 5px;
+    }
+    .redis-type {
+      fill: url(#topic-grad);
+      stroke: #36393d;
+      stroke-width: 1.25;
+      rx: 5px;
+    }
+    .api-box {
+      fill: url(#topic-grad);
+      stroke: #36393d;
+      stroke-width: 1.25;
+      rx: 5px;
+    }
+    .dashboard-box {
+      fill: url(#topic-grad);
+      stroke: #36393d;
+      stroke-width: 1.25;
+      rx: 5px;
+    }
+
+    /* Flow Animations */
+    @keyframes flow {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+    .flow-line {
+      fill: none;
+      stroke: #455a64;
+      stroke-width: 1.75;
+      stroke-dasharray: 6, 4;
+      animation: flow 1s linear infinite;
+    }
+    .flow-line-blue {
+      fill: none;
+      stroke: #1976d2;
+      stroke-width: 1.75;
+      stroke-dasharray: 6, 4;
+      animation: flow 1s linear infinite;
+    }
+    .static-line {
+      fill: none;
+      stroke: #555555;
+      stroke-width: 1.25;
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="925" y="45" class="title" text-anchor="middle">Architecture Diagram: Project Topic B – Real Time Traffic Monitoring</text>
+
+  <!-- =================================================== -->
+  <!-- 1. DATASET & PRODUCER (Top Left) -->
+  <!-- =================================================== -->
+
+  <!-- Dataset highlights (Moved to the far left) -->
+  <g transform="translate(40, 95)">
+    <text x="0" y="20" font-size="12" font-weight="bold" fill="#333">Highlights of the dataset:</text>
+    <text x="10" y="42" font-size="11" fill="#444">• GPS trajectories of 10,357 taxis from Beijing</text>
+    <text x="10" y="60" font-size="11" fill="#444">• 15 million trajectory points</text>
+    <text x="10" y="78" font-size="11" fill="#444">• 9 million kilometres distance</text>
+    <text x="10" y="96" font-size="11" fill="#444">• 7 days period</text>
+  </g>
+
+  <!-- T-Drive Trajectory Dataset (Cylinder, shifted right) -->
+  <g transform="translate(340, 60)" filter="url(#shadow)">
+    <path d="M 0 25 L 0 205 A 95 25 0 0 0 190 205 L 190 25" class="db-cylinder" />
+    <ellipse cx="95" cy="25" rx="95" ry="25" class="db-cylinder" />
+    <ellipse cx="95" cy="85" rx="95" ry="20" fill="none" stroke="#6c8ebf" stroke-width="0.75" stroke-dasharray="3,3" />
+    <ellipse cx="95" cy="145" rx="95" ry="20" fill="none" stroke="#6c8ebf" stroke-width="0.75" stroke-dasharray="3,3" />
+    <!-- GitHub Logo Shape -->
+    <path d="M 95 100 A 20 20 0 0 0 75 120 C 75 131 82 140 92 143 C 93 143 93 143 94 143 C 94 142 94 141 94 140 L 94 135 C 88 136 87 132 87 132 C 86 130 84 129 84 129 C 82 128 84 128 84 128 C 86 128 87 130 87 130 C 89 133 92 132 93 131 C 93 130 94 129 94 128 C 89 128 84 126 84 118 C 84 116 85 114 86 112 C 86 112 85 110 86 107 C 86 107 88 106 92 109 C 94 108 96 108 98 109 C 102 106 104 107 104 107 C 105 110 104 112 104 112 C 105 114 106 116 106 118 C 106 126 101 128 96 128 C 97 129 98 131 98 134 L 98 140 C 98 141 98 142 98 143 C 108 140 115 131 115 120 A 20 20 0 0 0 95 100 Z" fill="#1b1f23" />
+    <text x="95" y="180" class="label" font-weight="bold">T-Drive Trajectory</text>
+    <text x="95" y="196" class="label" font-weight="bold">Dataset</text>
+  </g>
+
+  <!-- Kafka Producer -->
+  <g transform="translate(650, 140)" filter="url(#shadow)">
+    <rect width="160" height="80" class="producer-box" />
+    <text x="80" y="40" class="label" font-weight="bold" fill="#c62828">Kafka Producer</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- 2. FLINK CLUSTER (Middle-Left Box) -->
+  <!-- =================================================== -->
+
+  <!-- Flink container -->
+  <g transform="translate(340, 370)">
+    <rect width="630" height="690" class="container-flink" />
+    <!-- Styled Flink Header -->
+    <rect x="0" y="0" width="630" height="45" fill="#ffe0b2" rx="8" />
+    <text x="20" y="28" font-size="18" font-weight="bold" fill="#e65100">Apache Flink Cluster</text>
+  </g>
+
+  <!-- Inside Flink -->
+  <!-- Kafka Source Connector -->
+  <g transform="translate(370, 520)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-source" />
+    <text x="60" y="24" class="label-multiline" fill="#c62828">Kafka Source</text>
+    <text x="60" y="42" class="sub-label" fill="#b71c1c">Connector</text>
+  </g>
+
+  <!-- Operators (Top stack) -->
+  <!-- PropagateLocInfo -->
+  <g transform="translate(800, 430)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">PropagateLocInfo</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+  <!-- OverspeedsAlert -->
+  <g transform="translate(800, 520)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">OverspeedsAlert</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+  <!-- AreaViolationsAlert -->
+  <g transform="translate(800, 610)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">AreaViolationsAlert</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+  <!-- Operators (Bottom flow) -->
+  <!-- CalculateCurrentSpeed -->
+  <g transform="translate(450, 820)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="22" class="label-multiline">CalculateCurrent</text>
+    <text x="60" y="36" class="label-multiline">Speed</text>
+    <text x="60" y="48" class="sub-label">Operator</text>
+  </g>
+
+  <!-- CalculateAverageSpeed -->
+  <g transform="translate(625, 820)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="22" class="label-multiline">CalculateAverage</text>
+    <text x="60" y="36" class="label-multiline">Speed</text>
+    <text x="60" y="48" class="sub-label">Operator</text>
+  </g>
+
+  <!-- CalculateDistance -->
+  <g transform="translate(625, 965)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">CalculateDistance</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+  <!-- StoreTaxiInfo -->
+  <g transform="translate(810, 820)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">StoreTaxiInfo</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+  <!-- FleetStatsOperator -->
+  <g transform="translate(820, 965)" filter="url(#shadow)">
+    <rect width="120" height="60" class="flink-operator" />
+    <text x="60" y="24" class="label-multiline">FleetStatsOperator</text>
+    <text x="60" y="42" class="sub-label">Operator</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- 3. KAFKA TOPICS (Middle-Right Top Box) -->
+  <!-- =================================================== -->
+
+  <!-- Kafka container -->
+  <g transform="translate(1050, 60)">
+    <rect width="330" height="820" class="container-kafka" />
+    <!-- Styled Header -->
+    <rect x="0" y="0" width="330" height="45" fill="#eceff1" rx="8" />
+    <text x="20" y="28" font-size="18" font-weight="bold" fill="#37474f">Kafka Topics</text>
+  </g>
+
+  <!-- Kafka Topics -->
+  <!-- taxi-raw-data -->
+  <g transform="translate(1100, 240)" filter="url(#shadow)">
+    <rect width="230" height="60" class="kafka-topic" />
+    <text x="115" y="30" class="label" font-weight="bold">taxi-raw-data</text>
+  </g>
+
+  <!-- taxi-locations -->
+  <g transform="translate(1095, 430)" filter="url(#shadow)">
+    <rect width="230" height="60" class="kafka-topic" />
+    <text x="115" y="30" class="label" font-weight="bold">taxi-locations</text>
+  </g>
+
+  <!-- violation-events -->
+  <g transform="translate(1095, 565)" filter="url(#shadow)">
+    <rect width="230" height="60" class="kafka-topic" />
+    <text x="115" y="30" class="label" font-weight="bold">violation-events</text>
+  </g>
+
+  <!-- fleet-metrics -->
+  <g transform="translate(1095, 685)" filter="url(#shadow)">
+    <rect width="230" height="60" class="kafka-topic" />
+    <text x="115" y="30" class="label" font-weight="bold">fleet-metrics</text>
+  </g>
+
+  <!-- state-updates -->
+  <g transform="translate(1100, 800)" filter="url(#shadow)">
+    <rect width="230" height="60" class="kafka-topic" />
+    <text x="115" y="30" class="label" font-weight="bold">state-updates</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- 4. REDIS (Middle-Right Bottom Box) -->
+  <!-- =================================================== -->
+
+  <!-- Redis container -->
+  <g transform="translate(1050, 900)">
+    <rect width="330" height="160" class="container-redis" />
+    <!-- Styled Header -->
+    <rect x="0" y="0" width="330" height="40" fill="#ffcdd2" rx="8" />
+    <text x="20" y="25" font-size="16" font-weight="bold" fill="#b71c1c">Redis Cache</text>
+  </g>
+
+  <!-- Redis Data Types -->
+  <!-- Hash -->
+  <g transform="translate(1167.5, 920)" filter="url(#shadow)">
+    <rect width="100" height="30" class="redis-type" />
+    <text x="50" y="15" class="label" font-weight="bold">Hash</text>
+  </g>
+
+  <!-- Set -->
+  <g transform="translate(1167.5, 965)" filter="url(#shadow)">
+    <rect width="100" height="30" class="redis-type" />
+    <text x="50" y="15" class="label" font-weight="bold">Set</text>
+  </g>
+
+  <!-- String -->
+  <g transform="translate(1167.5, 1010)" filter="url(#shadow)">
+    <rect width="100" height="30" class="redis-type" />
+    <text x="50" y="15" class="label" font-weight="bold">String</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- 5. API SERVING LAYER (Right Column, Box 1) -->
+  <!-- =================================================== -->
+
+  <!-- API container -->
+  <g transform="translate(1470, 372.5)">
+    <rect width="170" height="687.5" class="container-api" />
+    <!-- Styled Header -->
+    <rect x="0" y="0" width="170" height="45" fill="#bbdefb" rx="8" />
+    <text x="20" y="28" font-size="16" font-weight="bold" fill="#0d47a1">Serving API</text>
+  </g>
+
+  <!-- WebSocket APIs -->
+  <g transform="translate(1495, 565)" filter="url(#shadow)">
+    <rect width="120" height="60" class="api-box" />
+    <text x="60" y="22" class="label-multiline" fill="#0d47a1">WebSocket</text>
+    <text x="60" y="40" class="sub-label">APIs</text>
+  </g>
+
+  <!-- REST APIs -->
+  <g transform="translate(1495, 950)" filter="url(#shadow)">
+    <rect width="120" height="60" class="api-box" />
+    <text x="60" y="22" class="label-multiline" fill="#0d47a1">REST</text>
+    <text x="60" y="40" class="sub-label">APIs</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- 6. DASHBOARD (Right Column, Box 2) -->
+  <!-- =================================================== -->
+
+  <!-- Dashboard container -->
+  <g transform="translate(1670, 372.5)">
+    <rect width="170" height="687.5" class="container-dashboard" />
+    <!-- Styled Header -->
+    <rect x="0" y="0" width="170" height="45" fill="#cfd8dc" rx="8" />
+    <text x="20" y="28" font-size="16" font-weight="bold" fill="#37474f">Dashboard</text>
+  </g>
+
+  <!-- Live Map -->
+  <g transform="translate(1695, 450)" filter="url(#shadow)">
+    <rect width="120" height="50" class="dashboard-box" />
+    <text x="60" y="25" class="label" font-weight="bold">Live Map</text>
+  </g>
+
+  <!-- Incidents Feed -->
+  <g transform="translate(1695, 535)" filter="url(#shadow)">
+    <rect width="120" height="50" class="dashboard-box" />
+    <text x="60" y="25" class="label" font-weight="bold">Incidents Feed</text>
+  </g>
+
+  <!-- Taxi Fleet Status -->
+  <g transform="translate(1695, 620)" filter="url(#shadow)">
+    <rect width="120" height="50" class="dashboard-box" />
+    <text x="60" y="25" class="label" font-weight="bold">Fleet Status</text>
+  </g>
+
+  <!-- Analytics page -->
+  <g transform="translate(1695, 955)" filter="url(#shadow)">
+    <rect width="120" height="50" class="dashboard-box" />
+    <text x="60" y="25" class="label" font-weight="bold">Analytics Page</text>
+  </g>
+
+
+  <!-- =================================================== -->
+  <!-- ANIMATED FLOW PATHS -->
+  <!-- =================================================== -->
+
+  <!-- 1. T-Drive -> Kafka Producer (Read Dataset) -->
+  <path d="M 530 180 L 650 180" class="flow-line" marker-end="url(#arrow)" />
+  <text x="590" y="172" class="flow-text">Read dataset</text>
+
+  <!-- 2. Kafka Producer -> taxi-raw-data (publish) -->
+  <path d="M 810 180 L 1215 180 L 1215 240" class="flow-line" marker-end="url(#arrow)" />
+  <text x="980" y="172" class="flow-text">publish</text>
+
+  <!-- 3. taxi-raw-data -> Kafka Source Connector (consume) -->
+  <path d="M 1215 300 L 1215 330 L 430 330 L 430 520" class="flow-line" marker-end="url(#arrow)" />
+  <text x="822" y="322" class="flow-text">consume</text>
+
+  <!-- 4. Kafka Source -> PropagateLocInfo -->
+  <path d="M 490 550 L 600 550 L 600 460 L 800 460" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 5. Kafka Source -> OverspeedsAlert -->
+  <path d="M 490 550 L 800 550" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 6. Kafka Source -> AreaViolationsAlert -->
+  <path d="M 490 550 L 600 550 L 600 640 L 800 640" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 7. Kafka Source -> CalculateCurrentSpeed -->
+  <path d="M 430 580 L 430 770 L 510 770 L 510 820" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 8. Kafka Source -> CalculateDistance -->
+  <path d="M 390 580 L 390 995 L 625 995" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 9. CalculateCurrentSpeed -> CalculateAverageSpeed -->
+  <path d="M 570 850 L 625 850" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 10. CalculateAverageSpeed -> StoreTaxiInfo -->
+  <path d="M 745 850 L 810 850" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 11. CalculateDistance -> StoreTaxiInfo -->
+  <path d="M 685 965 L 685 930 L 870 930 L 870 880" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 12. CalculateDistance -> FleetStatsOperator -->
+  <path d="M 745 995 L 820 995" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 13. CalculateAverageSpeed -> FleetStatsOperator -->
+  <path d="M 685 880 L 685 910 L 760 910 L 760 975 L 820 975" class="static-line" marker-end="url(#arrow)" />
+
+  <!-- 14. PropagateLocInfo -> taxi-locations -->
+  <path d="M 920 460 L 1095 460" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1007" y="452" class="flow-text">write</text>
+
+  <!-- 15. OverspeedsAlert -> violation-events -->
+  <path d="M 920 550 L 1010 550 L 1010 580 L 1095 580" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1007" y="542" class="flow-text">write</text>
+
+  <!-- 16. AreaViolationsAlert -> violation-events -->
+  <path d="M 920 640 L 1010 640 L 1010 610 L 1095 610" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- 17. StoreTaxiInfo -> state-updates -->
+  <path d="M 930 850 L 1020 850 L 1020 830 L 1100 830" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1015" y="822" class="flow-text">write</text>
+
+  <!-- 18. StoreTaxiInfo -> Redis Hash -->
+  <path d="M 930 850 L 1020 850 L 1020 935 L 1167.5 935" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1015" y="890" class="flow-text">write</text>
+
+  <!-- 19. FleetStatsOperator -> Redis Set -->
+  <path d="M 940 995 L 1020 995 L 1020 980 L 1167.5 980" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- 20. FleetStatsOperator -> Redis String -->
+  <path d="M 940 995 L 1020 995 L 1020 1025 L 1167.5 1025" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1015" y="1017" class="flow-text">write</text>
+
+  <!-- 21. FleetStatsOperator -> fleet-metrics -->
+  <path d="M 940 995 L 1040 995 L 1040 715 L 1095 715" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- 22. taxi-locations -> WebSocket APIs -->
+  <path d="M 1325 460 L 1400 460 L 1400 580 L 1495 580" class="flow-line" marker-end="url(#arrow)" />
+  <text x="1400" y="520" class="flow-text">consume</text>
+
+  <!-- 23. violation-events -> WebSocket APIs -->
+  <path d="M 1325 595 L 1495 595" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- 24. fleet-metrics -> WebSocket APIs -->
+  <path d="M 1325 715 L 1400 715 L 1400 610 L 1495 610" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- 25. Redis -> REST APIs -->
+  <path d="M 1267.5 965 L 1400 965 L 1400 980 L 1495 980" class="flow-line-blue" marker-end="url(#arrow-blue)" />
+  <text x="1400" y="947" class="flow-text" fill="#1976d2">consume</text>
+
+  <!-- 26. WebSocket -> Dashboard (Live Map, Feed, Status) -->
+  <path d="M 1615 580 L 1660 580 L 1660 480 L 1695 480" class="flow-line-blue" marker-end="url(#arrow-blue)" />
+  <path d="M 1615 595 L 1695 595" class="flow-line-blue" marker-end="url(#arrow-blue)" />
+  <path d="M 1615 610 L 1660 610 L 1660 650 L 1695 650" class="flow-line-blue" marker-end="url(#arrow-blue)" />
+
+  <!-- 27. REST APIs -> Analytics page -->
+  <path d="M 1615 980 L 1695 980" class="flow-line-blue" marker-end="url(#arrow-blue)" />
+
+</svg>
